@@ -1,0 +1,19 @@
+# Core dependencies
+pandas
+numpy
+requests
+matplotlib
+seaborn
+openpyxl
+
+# Zerodha API
+kiteconnect
+
+# Technical indicators
+ta
+
+# YAML for config
+pyyaml
+
+#nse data
+nsepy

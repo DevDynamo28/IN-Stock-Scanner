@@ -1,0 +1,107 @@
+# rs_outperformance_kite_system/data/live_fetch/kite_client.py
+
+from kiteconnect import KiteConnect
+import pandas as pd
+from datetime import datetime, timedelta, date
+import time
+
+class ZerodhaKiteClient:
+    def __init__(self, api_key, api_secret, access_token):
+        self.api_key = api_key
+        self.api_secret = api_secret
+        self.access_token = access_token
+        self.kite = KiteConnect(api_key=self.api_key)
+        self.kite.set_access_token(self.access_token)
+        self.instrument_cache = self.build_token_cache()
+
+    def build_token_cache(self):
+        print("[INFO] Building instrument token cache...")
+        instruments = self.kite.instruments()
+        token_map = {}
+        for item in instruments:
+            if item['instrument_type'] in ['EQ', 'Index'] and item['exchange'] in ['NSE', 'NFO']:
+                token_map[item['tradingsymbol']] = item['instrument_token']
+        print(f"[✅] Cached {len(token_map)} tokens (EQ + Index).")
+        return token_map
+
+    def fetch_instrument_token(self, symbol):
+        token = self.instrument_cache.get(symbol)
+
+        # Fallback for known index tokens if not found
+        if not token and symbol.upper() == "NIFTY":
+            token = 256265  # Known token for NIFTY
+        elif not token and symbol.upper() == "BANKNIFTY":
+            token = 260105
+
+        if not token:
+            print(f"[❌] No token found for {symbol}")
+        return token
+
+    def fetch_historical_ohlc(self, symbol, from_date, to_date, interval="day"):
+        token = self.fetch_instrument_token(symbol)
+        print(f"[FETCH] {symbol} OHLC from {from_date} to {to_date} → Token: {token}")
+
+        if not token:
+            return pd.DataFrame()
+
+        # Fresh KiteConnect session for reliable fetch
+        kite = KiteConnect(api_key=self.api_key)
+        kite.set_access_token(self.access_token)
+
+        try:
+            data = kite.historical_data(
+                instrument_token=token,
+                from_date=from_date,
+                to_date=to_date,
+                interval=interval
+            )
+
+            if not data:
+                print(f"[EMPTY] {symbol}")
+                return pd.DataFrame()
+
+            df = pd.DataFrame(data)
+            if 'close' not in df.columns:
+                print(f"[ERROR] {symbol}: Missing 'close' column.")
+                return pd.DataFrame()
+
+            df['date'] = pd.to_datetime(df['date'])
+            df.set_index('date', inplace=True)
+            return df
+
+        except Exception as e:
+            print(f"[FAIL] {symbol}: {e}")
+            return pd.DataFrame()
+
+    def fetch_multiple_ohlc(self, symbol_list):
+        today = datetime.now().date()
+        days_of_data = 50
+        holiday_buffer = 30
+        start = today - timedelta(days=days_of_data + holiday_buffer)
+        end = today
+
+        print(f"[INFO] Fetching OHLCV for {len(symbol_list)} symbols from {start} to {end}")
+        data_dict = {}
+
+        for symbol in symbol_list:
+            df = self.fetch_historical_ohlc(symbol, start, end)
+            if not df.empty:
+                data_dict[symbol] = df
+                print(f"[✅] {symbol}: {len(df)} rows")
+            else:
+                print(f"[SKIP] No data for {symbol}")
+            time.sleep(0.4)  # Respect rate limits
+
+        print(f"[✅] Fetched data for {len(data_dict)} symbols.")
+        return data_dict
+
+    def fetch_index_data(self, index_symbol='NIFTY', start=None, end=None):
+        if not start or not end:
+            end = datetime.now().date()
+            start = end - timedelta(days=50)
+        index_df = self.fetch_historical_ohlc(index_symbol, start, end)
+        if index_df.empty:
+            print(f"[❌] Failed to fetch index data for {index_symbol}")
+        else:
+            print(f"[✅] Index {index_symbol}: {len(index_df)} rows")
+        return index_df
