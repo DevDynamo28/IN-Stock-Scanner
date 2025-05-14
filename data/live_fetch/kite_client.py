@@ -13,30 +13,79 @@ class ZerodhaKiteClient:
         self.kite = KiteConnect(api_key=self.api_key)
         self.kite.set_access_token(self.access_token)
         self.instrument_cache = self.build_token_cache()
+        
 
     def build_token_cache(self):
         print("[INFO] Building instrument token cache...")
         instruments = self.kite.instruments()
+
+        # 👉 Add this to see what index names are available
+        print("[DEBUG] Sampling index instruments:")
+        for item in instruments:
+            if item['instrument_type'] == 'Index':
+                print(f"{item['tradingsymbol']} | {item['name']} → {item['instrument_token']}")
+
         token_map = {}
         for item in instruments:
             if item['instrument_type'] in ['EQ', 'Index'] and item['exchange'] in ['NSE', 'NFO']:
                 token_map[item['tradingsymbol']] = item['instrument_token']
-        print(f"[✅] Cached {len(token_map)} tokens (EQ + Index).")
+        print(f"[✅] Cached {len(token_map)} tradable tokens.")
         return token_map
-
+        
+                
     def fetch_instrument_token(self, symbol):
+        symbol = symbol.upper()
+
+        # Step 1: Try from cached map
         token = self.instrument_cache.get(symbol)
+        if token:
+            return token
 
-        # Fallback for known index tokens if not found
-        if not token and symbol.upper() == "NIFTY":
-            token = 256265  # Known token for NIFTY
-        elif not token and symbol.upper() == "BANKNIFTY":
-            token = 260105
+        # Step 2: Known index aliases → proper names (used by Kite)
+        index_aliases = {
+            "NIFTY": "NIFTY 50",
+            "BANKNIFTY": "NIFTY BANK",
+            "FINNIFTY": "NIFTY FINANCIAL SERVICES",
+            "MIDCPNIFTY": "NIFTY MIDCAP SELECT",
+            "NIFTYMIDCAP100": "NIFTY MIDCAP 100",
+            "NIFTYSMALLCAP100": "NIFTY SMALLCAP 100",
+            "NIFTYIT": "NIFTY IT",
+            "NIFTYMETAL": "NIFTY METAL",
+            "NIFTYPHARMA": "NIFTY PHARMA",
+            "NIFTYAUTO": "NIFTY AUTO",
+            "NIFTYFMCG": "NIFTY FMCG"
+        }
 
-        if not token:
-            print(f"[❌] No token found for {symbol}")
-        return token
+        mapped_name = index_aliases.get(symbol, symbol)
 
+        # Step 3: Try to resolve from full instrument list
+        try:
+            for item in self.kite.instruments():
+                if item.get('name', '').upper() == mapped_name.upper() and item.get('instrument_type', '').upper() == 'INDEX':
+                    token = item['instrument_token']
+                    self.instrument_cache[symbol] = token
+                    print(f"[DYNAMIC ✅] Resolved index token for '{symbol}' → {token}")
+                    return token
+        except Exception as e:
+            print(f"[ERROR] Failed to resolve token from instruments for {symbol}: {e}")
+
+        # Step 4: Final manual fallback (Kite may not expose some indices)
+        manual_index_tokens = {
+            "NIFTY": 256265,
+            "BANKNIFTY": 260105,
+            "NIFTYMIDCAP100": 1287746,
+            "NIFTYSMALLCAP100": 1292545
+        }
+
+        if symbol in manual_index_tokens:
+            token = manual_index_tokens[symbol]
+            print(f"[HARDCODE ✅] Used static token for {symbol} → {token}")
+            return token
+
+        # Step 5: Not found
+        print(f"[❌] No token found for {symbol}")
+        return None
+        
     def fetch_historical_ohlc(self, symbol, from_date, to_date, interval="day"):
         token = self.fetch_instrument_token(symbol)
         print(f"[FETCH] {symbol} OHLC from {from_date} to {to_date} → Token: {token}")
