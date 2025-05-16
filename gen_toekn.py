@@ -1,36 +1,35 @@
-# generate_token.py
-
 from kiteconnect import KiteConnect
-import webbrowser
 import yaml
 
-API_KEY = "kut7ix3qpu48c2m1"
-API_SECRET = "gzjcxjm6di8txttk0f7p69g8f9zjj0zk"
+api_key = "kut7ix3qpu48c2m1"
+api_secret = "gzjcxjm6di8txttk0f7p69g8f9zjj0zk"
 
-def save_access_token(token):
-    config_path = "config/secrets.yaml"
-    with open(config_path, "r") as f:
-        config = yaml.safe_load(f)
-    config["kite_access_token"] = token
-    with open(config_path, "w") as f:
-        yaml.dump(config, f)
-    print(f"[✅] Access token saved to {config_path}")
+# Initialize KiteConnect
+kite = KiteConnect(api_key=api_key)
+# Step 1: Print login URL
+print("🔐 Login to Zerodha here and authorize the app:")
+print(kite.login_url())
 
-def main():
-    kite = KiteConnect(api_key=API_KEY)
-    login_url = kite.login_url()
-    print("[🔗] Opening login URL in your browser...")
-    webbrowser.open(login_url)
-    print("[✍️] After login, paste the `request_token` here:")
-    request_token = input("Enter request_token: ").strip()
+# Step 2: After login, paste the request_token here
+request_token = input("\nPaste the request_token from the URL here: ").strip()
 
-    try:
-        data = kite.generate_session(request_token, api_secret=API_SECRET)
-        access_token = data["access_token"]
-        print(f"[🔐] Access Token: {access_token}")
-        save_access_token(access_token)
-    except Exception as e:
-        print(f"[❌] Failed to generate token: {e}")
+# Step 3: Generate session (access token)
+try:
+    data = kite.generate_session(request_token, api_secret=api_secret)
+    access_token = data["access_token"]
+    print(f"\n✅ Access Token: {access_token}")
 
-if __name__ == "__main__":
-    main()
+    # Step 4: Save to secrets.yaml
+    secrets = {
+        'kite_api_key': api_key,
+        'kite_api_secret': api_secret,
+        'kite_access_token': access_token
+    }
+
+    with open("config/secrets.yaml", "w") as f:
+        yaml.dump(secrets, f)
+
+    print("✅ Access token saved to config/secrets.yaml")
+
+except Exception as e:
+    print(f"❌ Failed to generate access token: {e}")

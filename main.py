@@ -29,6 +29,7 @@ kite = ZerodhaKiteClient(api_key, api_secret, access_token)
 symbols = config.get('stock_list', [])
 index_symbol = config.get('index_symbol', 'NIFTY')
 top_n = config.get('top_n', 50)
+use_sector_filter = config.get('use_sector_filter', True)
 print(f"[📦] Loaded {len(symbols)} symbols from config.")
 
 # Define date range for OHLC
@@ -52,7 +53,8 @@ entry_df = run_daily_entry_engine(
     api_key, api_secret, access_token,
     stock_data_dict=stock_data_dict,
     index_df=index_df,
-    top_n=top_n
+    top_n=top_n,
+    use_sector_filter=use_sector_filter
 )
 
 # Step 3: Save Report + Charts + Telegram
@@ -63,7 +65,12 @@ if not entry_df.empty:
         symbol = row['symbol']
         pattern = row['RS Pattern']
         alpha = row['RS Alpha']
-        stock_df = stock_data_dict[symbol]
+        fusion = row.get('Fusion Score', '?')
+        volume_ok = row.get('Volume Confirm', False)
+        volume_text = "✅ Confirmed" if volume_ok else "❌ Weak"
+
+        stock_df = stock_data_dict[symbol]  # ✅ This must come before using stock_df
+        latest_price = stock_df['close'].iloc[-1]
 
         # Ensure required indicators are available
         stock_df = add_ama(stock_df)
@@ -74,14 +81,15 @@ if not entry_df.empty:
             ama = stock_df['ama'].iloc[-1]
             donchian_high = stock_df['donchian_high'].iloc[-1]
             swing_low = stock_df['low'].rolling(window=5).min().iloc[-1]
-
             target = round(donchian_high * 1.01, 2)
             stoploss = round(min(ama, swing_low), 2)
-
             message = (
                 f"🚀 RS Entry: {symbol}\n"
                 f"📊 Pattern: {pattern}\n"
-                f"📈 Alpha: {alpha:.4f}\n\n"
+                f"📈 Alpha: {alpha:.4f}\n"
+                f"🧠 Fusion Score: {fusion}/5\n\n"
+                f"📦 Volume: {volume_text}\n"
+                f"💰 Current: ₹{latest_price} (Latest Close)\n"
                 f"✅ Decision: ENTRY CANDIDATE\n\n"
                 f"🎯 Target: ₹{target} (Donchian High + buffer)\n"
                 f"🛡️ Stoploss: ₹{stoploss} (Below AMA or last swing low)"
@@ -96,9 +104,9 @@ if not entry_df.empty:
 
         send_telegram_message(message)
 
-        chart_path = plot_rs_chart(symbol, stock_df, index_df, pattern=pattern)
-        if chart_path:
-            send_file_to_telegram(chart_path)
+        #chart_path = plot_rs_chart(symbol, stock_df, index_df, pattern=pattern)
+        #if chart_path:
+        #    send_file_to_telegram(chart_path)
 
 else:
     send_telegram_message("📭 *No RS entries found today.*")

@@ -73,10 +73,16 @@ class ZerodhaKiteClient:
         manual_index_tokens = {
             "NIFTY": 256265,
             "BANKNIFTY": 260105,
+            "NIFTYIT": 9992609,
+            "NIFTYAUTO": 8969473,
+            "NIFTYPHARMA": 974593,
+            "NIFTYFMCG": 1199361,
+            "NIFTYENERGY": 1376769,
+            "NIFTYFIN": 10519041,
+            "NIFTYINFRA": 135049,
             "NIFTYMIDCAP100": 1287746,
             "NIFTYSMALLCAP100": 1292545
         }
-
         if symbol in manual_index_tokens:
             token = manual_index_tokens[symbol]
             print(f"[HARDCODE ✅] Used static token for {symbol} → {token}")

@@ -22,6 +22,14 @@ def save_trade_report(df,
     output_path = os.path.join("output", "reports", filename)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
+    # Reorder columns if they exist
+    preferred_order = [
+        'symbol', 'RS Alpha', 'RS Pattern', 'Close', 'AMA',
+        'Fusion Score', 'Volume Confirm'
+    ]
+    df = df[[col for col in preferred_order if col in df.columns]]
+
+    # Save file
     if filetype == "csv":
         df.to_csv(output_path, index=False)
     elif filetype == "xlsx":
@@ -29,8 +37,20 @@ def save_trade_report(df,
 
     print(f"[SUCCESS] Report saved: {output_path}")
 
+    # Export symbols with volume confirmation only
+    txt_path = os.path.join("output", "watchlist", f"tv_watchlist_{date_str}.txt")
+    os.makedirs(os.path.dirname(txt_path), exist_ok=True)
+    if 'Volume Confirm' in df.columns:
+        confirmed_df = df[df['Volume Confirm'] == True]
+    else:
+        confirmed_df = df
+    confirmed_df['symbol'].dropna().to_csv(txt_path, index=False, header=False)
+    print(f"[EXPORT] TradingView watchlist saved: {txt_path}")
+
     if send_telegram:
         send_file_to_telegram(output_path)
+        # Chart image suppressed intentionally
+        send_file_to_telegram(txt_path)
 
 
 def send_file_to_telegram(file_path):
