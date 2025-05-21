@@ -22,19 +22,21 @@ def detect_lion_pattern(rs_series, spike_threshold=0.05):
 
 def detect_star_pattern(rs_series, base_window=20):
     """Flat base followed by slow uptrend = Star"""
-    base_std = rs_series[-base_window:-10].std()
-    recent_trend = rs_series[-10:].diff().mean()
+    # Use position based indexing as rs_series likely has a DateTime index
+    base_std = rs_series.iloc[-base_window:-10].std()
+    recent_trend = rs_series.iloc[-10:].diff().mean()
     if base_std < 0.01 and recent_trend > 0:
         return True
     return False
 
 def detect_drowning_pattern(rs_series):
     """Steady RS decline = Drowning"""
-    return rs_series[-5:].is_monotonic_decreasing
+    # iloc avoids KeyError when series index is not RangeIndex
+    return rs_series.iloc[-5:].is_monotonic_decreasing
 
 def detect_cat_pattern(rs_series, threshold=0.01):
     """Flat RS range = Cat on the wall"""
-    rs_range = rs_series[-10:].max() - rs_series[-10:].min()
+    rs_range = rs_series.iloc[-10:].max() - rs_series.iloc[-10:].min()
     return rs_range < threshold
 
 def get_rs_pattern(rs_series):
