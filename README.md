@@ -2,6 +2,15 @@
 
 
 IN-Stock-Scanner is a collection of utilities and trading scripts for scanning NSE stocks using the Zerodha Kite API. It focuses on relative strength (RS) calculations, sector analysis and basic backtesting utilities. The project can run a daily scanner with live data and also provides a simple backtest runner.
+## Quick start
+
+Install dependencies and then run:
+
+```bash
+python main.py            # runs the daily scanner
+python backtest_runner.py # runs the basic backtest
+```
+
 
 ## Folder layout
 
@@ -15,7 +24,7 @@ notebooks/      # Jupyter notebooks for research
 tools/          # Small helper utilities (charting, etc.)
 main.py         # Runs the daily scanner with live data
 backtest_runner.py  # Simple historical backtester
-gen_toekn.py        # Utility to generate and save Kite access tokens
+gen_token.py        # Utility to generate and save Kite access tokens
 ```
 
 ## Installation
@@ -34,10 +43,10 @@ pip install .
 
 ## Generating Kite access tokens
 
-Use `gen_toekn.py` to obtain and store the Zerodha Kite `access_token`:
+Use `gen_token.py` to obtain and store the Zerodha Kite `access_token`:
 
 ```bash
-python gen_toekn.py
+python gen_token.py
 ```
 
 The script prints a login URL. Open the URL in a browser, authenticate with Zerodha and copy the `request_token` from the redirect URL. Paste it back into the script when prompted. A new `access_token` will be generated and saved to `config/secrets.yaml` alongside your API key and secret.
@@ -62,7 +71,6 @@ python backtest_runner.py
 ```
 
 Results are written to `output/backtest_trades.csv`.
-=======
 This project scans stocks using Zerodha Kite data and generates reports.
 
 ## Configuration
