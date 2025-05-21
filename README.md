@@ -43,13 +43,13 @@ pip install .
 
 ## Generating Kite access tokens
 
-Use `gen_token.py` to obtain and store the Zerodha Kite `access_token`:
+First add your API credentials to `config/secrets.yaml` (copy `secrets.example.yaml` if the file doesn't exist) under the keys `kite_api_key` and `kite_api_secret`. Then run:
 
 ```bash
 python gen_token.py
 ```
 
-The script prints a login URL. Open the URL in a browser, authenticate with Zerodha and copy the `request_token` from the redirect URL. Paste it back into the script when prompted. A new `access_token` will be generated and saved to `config/secrets.yaml` alongside your API key and secret.
+The script prints a login URL. Open the URL in a browser, authenticate with Zerodha and copy the `request_token` from the redirect URL. Paste it back into the script when prompted. A new `access_token` will be generated and stored back into `config/secrets.yaml`.
 
 ## Running the live scanner
 
