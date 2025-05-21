@@ -53,20 +53,31 @@ def save_trade_report(df,
         send_file_to_telegram(txt_path)
 
 
-def send_file_to_telegram(file_path):
+def send_file_to_telegram(file_path, chat_ids=None):
+    """Send a file to one or multiple Telegram chats."""
+
     secrets = load_secrets()
     token = secrets['telegram_bot_token']
-    chat_id = secrets['telegram_chat_id']
+
+    if chat_ids is None:
+        chat_ids = secrets['telegram_chat_id']
+
+    if isinstance(chat_ids, str):
+        chat_ids = [chat_ids]
 
     url = f"https://api.telegram.org/bot{token}/sendDocument"
-    try:
-        with open(file_path, 'rb') as file:
-            response = requests.post(url,
-                                     data={'chat_id': chat_id},
-                                     files={'document': file})
-        if response.status_code == 200:
-            print("[SUCCESS] Report sent to Telegram.")
-        else:
-            print(f"[ERROR] File send failed: {response.text}")
-    except Exception as e:
-        print(f"[ERROR] Exception in sending file: {e}")
+
+    for chat_id in chat_ids:
+        try:
+            with open(file_path, 'rb') as file:
+                response = requests.post(
+                    url,
+                    data={'chat_id': chat_id},
+                    files={'document': file}
+                )
+            if response.status_code == 200:
+                print(f"[SUCCESS] Sent file to {chat_id}: {file_path}")
+            else:
+                print(f"[ERROR] Failed to send file to {chat_id}: {response.text}")
+        except Exception as e:
+            print(f"[ERROR] Exception sending file to {chat_id}: {e}")
