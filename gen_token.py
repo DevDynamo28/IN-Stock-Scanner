@@ -1,8 +1,11 @@
 from kiteconnect import KiteConnect
 import yaml
 
-api_key = "kut7ix3qpu48c2m1"
-api_secret = "gzjcxjm6di8txttk0f7p69g8f9zjj0zk"
+from tools.secrets import load_secrets
+
+secrets = load_secrets()
+api_key = secrets["kite_api_key"]
+api_secret = secrets["kite_api_secret"]
 
 # Initialize KiteConnect
 kite = KiteConnect(api_key=api_key)
@@ -20,11 +23,7 @@ try:
     print(f"\n✅ Access Token: {access_token}")
 
     # Step 4: Save to secrets.yaml
-    secrets = {
-        'kite_api_key': api_key,
-        'kite_api_secret': api_secret,
-        'kite_access_token': access_token
-    }
+    secrets["kite_access_token"] = access_token
 
     with open("config/secrets.yaml", "w") as f:
         yaml.dump(secrets, f)
