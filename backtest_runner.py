@@ -7,9 +7,10 @@ from strategy.rs_entry_engine import run_daily_entry_engine
 from data.live_fetch.kite_client import ZerodhaKiteClient
 import yaml
 
+from tools.secrets import load_secrets
+
 # Load config
-with open("config/secrets.yaml") as f:
-    secrets = yaml.safe_load(f)
+secrets = load_secrets()
 
 with open("config/params.yaml") as f:
     params = yaml.safe_load(f)

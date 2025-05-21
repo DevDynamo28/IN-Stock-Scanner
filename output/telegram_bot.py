@@ -1,12 +1,8 @@
 # rs_outperformance_kite_system/output/telegram_bot.py
 
 import requests
-import yaml
 
-
-def load_secrets(path='config/secrets.yaml'):
-    with open(path, 'r') as f:
-        return yaml.safe_load(f)
+from tools.secrets import load_secrets
 
 
 def send_telegram_message(message):
