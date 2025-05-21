@@ -8,11 +8,12 @@ from tools.charting import plot_rs_chart
 from core.rs_calculator import add_ama, add_donchian_channel
 
 import yaml
+
+from tools.secrets import load_secrets
 from datetime import datetime, timedelta
 
 # Load config and secrets
-with open("config/secrets.yaml", "r") as f:
-    secrets = yaml.safe_load(f)
+secrets = load_secrets()
 
 with open("config/params.yaml", "r") as f:
     config = yaml.safe_load(f)

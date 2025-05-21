@@ -17,3 +17,6 @@ pyyaml
 
 #nse data
 nsepy
+
+# Data provider
+yfinance

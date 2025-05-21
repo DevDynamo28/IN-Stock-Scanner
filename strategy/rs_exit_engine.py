@@ -5,7 +5,7 @@ from core.pattern_recognizer import get_rs_pattern
 import pandas as pd
 
 def evaluate_exit(stock_df, index_df, symbol, rs_threshold=0.01):
-    """Return True if exit is suggested"""
+    """Return a dict with exit details if an exit is suggested, otherwise `None`."""
     rs_series = stock_df['close'] / index_df['close']
     rs_alpha_series = compute_rs_alpha(stock_df, index_df)
     latest_rs = rs_alpha_series.dropna().iloc[-1]
