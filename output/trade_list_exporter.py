@@ -5,12 +5,8 @@ import os
 from datetime import datetime
 from output.telegram_bot import send_telegram_message
 import requests
-import yaml
 
-
-def load_secrets(path='config/secrets.yaml'):
-    with open(path, 'r') as f:
-        return yaml.safe_load(f)
+from tools.secrets import load_secrets
 
 
 def save_trade_report(df,
