@@ -17,7 +17,11 @@ class ZerodhaKiteClient:
 
     def build_token_cache(self):
         print("[INFO] Building instrument token cache...")
-        instruments = self.kite.instruments()
+        try:
+            instruments = self.kite.instruments()
+        except Exception as e:
+            print(f"[WARN] Failed to fetch instruments: {e}")
+            return {}
 
         # 👉 Add this to see what index names are available
         print("[DEBUG] Sampling index instruments:")
