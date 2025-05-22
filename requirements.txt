@@ -18,5 +18,8 @@ pyyaml
 #nse data
 nsepy
 
+# Dashboard
+streamlit
+
 # Data provider
 yfinance

@@ -18,6 +18,9 @@ python backtest_runner.py # runs the basic backtest
 config/         # YAML configuration files and secrets
 core/           # RS, breadth and sector analysis utilities
 data/           # Live data fetch helpers built on Kite API
+account/       # Paper trading account logic
+broker/        # Zerodha wrapper with live/paper modes
+dashboard/     # Streamlit dashboard for monitoring
 strategy/       # Entry/exit engines and models
 output/         # Telegram helper and generated trade reports
 notebooks/      # Jupyter notebooks for research
