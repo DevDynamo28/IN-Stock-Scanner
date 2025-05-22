@@ -43,7 +43,10 @@ pip install .
 
 ## Generating Kite access tokens
 
-First add your API credentials to `config/secrets.yaml` (copy `secrets.example.yaml` if the file doesn't exist) under the keys `kite_api_key` and `kite_api_secret`. Then run:
+First add your API credentials to `config/secrets.yaml` (copy
+`secrets.example.yaml` if the file doesn't exist) under the keys
+`kite_api_key` and `kite_api_secret`. The `gen_token.py` helper reads these
+values automatically, so there's no need to modify the script. Then run:
 
 ```bash
 python gen_token.py
