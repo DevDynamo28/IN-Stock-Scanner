@@ -27,6 +27,7 @@ def get_nifty500_stock_list():
         return []
 
 # Example use
-nifty500_list = get_nifty500_stock_list()
-for s in nifty500_list[:10]:
-    print(s)
+if __name__ == "__main__":
+    nifty500_list = get_nifty500_stock_list()
+    for s in nifty500_list[:10]:
+        print(s)
