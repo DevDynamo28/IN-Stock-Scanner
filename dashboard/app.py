@@ -48,7 +48,11 @@ def auto_manage_positions(broker, watchlist):
         if symbol not in positions:
             entry_price = random.uniform(50, 150)
             target_price = round(entry_price * 1.1, 2)
-            broker.place_order(symbol, 1, entry_price, 'buy')
+            try:
+                broker.place_order(symbol, 1, entry_price, 'buy')
+            except ValueError as e:
+                st.warning(f"Failed to buy {symbol}: {e}")
+                continue
             positions[symbol] = {
                 'entry': entry_price,
                 'target': target_price,
@@ -60,7 +64,11 @@ def auto_manage_positions(broker, watchlist):
         current_price = random.uniform(50, 150)
 
         if symbol not in watchlist or current_price >= info['target']:
-            broker.place_order(symbol, 1, current_price, 'sell')
+            try:
+                broker.place_order(symbol, 1, current_price, 'sell')
+            except ValueError as e:
+                st.warning(f"Failed to sell {symbol}: {e}")
+                continue
             del positions[symbol]
 
 
