@@ -82,11 +82,15 @@ This project scans stocks using Zerodha Kite data and generates reports.
 ## Running the dashboard
 
 The project also includes a Streamlit dashboard that acts as a paper trading
-interface. Launch it by running:
+interface. Launch it with Streamlit:
 
 ```bash
-streamlit run dashboard/app.py
+PYTHONPATH=. streamlit run dashboard/app.py
 ```
+
+Setting `PYTHONPATH` ensures the dashboard can resolve local imports when run
+directly. Installing the project in editable mode (`pip install -e .`) also
+solves these import errors.
 
 Streamlit prints a local URL in the terminal (e.g. `http://localhost:8501`).
 Open this URL in your browser to view the dashboard.
