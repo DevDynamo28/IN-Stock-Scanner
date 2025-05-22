@@ -1,4 +1,14 @@
 import streamlit as st
+import os
+import sys
+
+# Ensure the repository root is on the Python path so that the local
+# `broker` package can be imported when this script is executed
+# directly by Streamlit or Python.
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
 from broker.zerodha import ZerodhaBroker, DummyWebSocket
 
 
