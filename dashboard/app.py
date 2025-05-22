@@ -2,8 +2,19 @@ import streamlit as st
 from broker.zerodha import ZerodhaBroker, DummyWebSocket
 
 
-@st.cache_resource
+# Streamlit changed its caching API in v1.18.0. Older versions
+# only provide `st.cache`, while newer versions offer
+# `st.cache_resource` for long-lived objects. Support both to make
+# the dashboard compatible across Streamlit releases.
+if hasattr(st, "cache_resource"):
+    cache_decorator = st.cache_resource
+else:  # Fallback for older Streamlit versions
+    cache_decorator = st.cache(allow_output_mutation=True)
+
+
+@cache_decorator
 def get_broker():
+    """Return a cached ZerodhaBroker instance."""
     return ZerodhaBroker(mode="paper")
 
 
