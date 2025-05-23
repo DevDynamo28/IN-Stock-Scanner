@@ -11,6 +11,8 @@ if REPO_ROOT not in sys.path:
 
 from broker.zerodha import ZerodhaBroker
 from tools.watchlist import load_latest_watchlist
+from data.live_fetch.kite_client import ZerodhaKiteClient
+from tools.secrets import load_secrets
 
 # Handle caching for compatibility across Streamlit versions
 if hasattr(st, "cache_resource"):
@@ -23,8 +25,30 @@ def get_broker():
     """Return a cached ZerodhaBroker instance."""
     return ZerodhaBroker(mode="paper")
 
+@cache_decorator
+def get_kite_client():
+    """Return a cached ZerodhaKiteClient for live price queries."""
+    secrets = load_secrets()
+    return ZerodhaKiteClient(
+        secrets.get("kite_api_key"),
+        secrets.get("kite_api_secret"),
+        secrets.get("kite_access_token"),
+    )
+
 def get_live_prices(symbols):
-    """Return a mapping of symbol to simulated live price."""
+    """Return a mapping of symbol to the latest live price.
+
+    If fetching live prices fails (e.g. due to missing credentials or
+    network issues) random values are returned as a fallback so the
+    dashboard remains functional in offline environments.
+    """
+    client = get_kite_client()
+    try:
+        prices = client.fetch_live_prices(list(symbols))
+        if prices:
+            return prices
+    except Exception as e:  # pragma: no cover - network issue
+        st.warning(f"Live price fetch failed: {e}")
     return {s: round(random.uniform(50, 150), 2) for s in symbols}
 
 def auto_manage_positions(broker, watchlist):

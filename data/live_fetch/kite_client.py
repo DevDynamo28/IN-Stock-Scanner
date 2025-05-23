@@ -164,3 +164,40 @@ class ZerodhaKiteClient:
         else:
             print(f"[✅] Index {index_symbol}: {len(index_df)} rows")
         return index_df
+
+    def fetch_live_prices(self, symbols):
+        """Return a mapping of symbol to the current market price.
+
+        Parameters
+        ----------
+        symbols : list[str]
+            List of symbols (e.g. ``["INFY", "TCS"]``) to fetch prices for.
+
+        Notes
+        -----
+        This method requires network access and valid Kite Connect
+        credentials. If the API request fails an empty dictionary is
+        returned and the error is printed.
+        """
+
+        tokens = {}
+        for sym in symbols:
+            token = self.fetch_instrument_token(sym)
+            if token:
+                tokens[sym] = token
+
+        if not tokens:
+            return {}
+
+        try:
+            quotes = self.kite.quote(tokens.values())
+        except Exception as e:  # pragma: no cover - network or auth issue
+            print(f"[WARN] Failed to fetch live prices: {e}")
+            return {}
+
+        prices = {}
+        for sym, token in tokens.items():
+            data = quotes.get(str(token))
+            if data and 'last_price' in data:
+                prices[sym] = data['last_price']
+        return prices
