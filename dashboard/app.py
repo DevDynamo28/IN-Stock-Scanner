@@ -12,6 +12,7 @@ if REPO_ROOT not in sys.path:
 from broker.zerodha import ZerodhaBroker
 from tools.watchlist import load_latest_watchlist
 from data.live_fetch.kite_client import ZerodhaKiteClient
+from data.live_fetch.kite_websocket import LivePriceStreamer
 from tools.secrets import load_secrets
 
 # Handle caching for compatibility across Streamlit versions
@@ -35,6 +36,21 @@ def get_kite_client():
         secrets.get("kite_access_token"),
     )
 
+@cache_decorator
+def get_price_streamer():
+    """Return a cached LivePriceStreamer for websocket price snapshots."""
+    secrets = load_secrets()
+    client = ZerodhaKiteClient(
+        secrets.get("kite_api_key"),
+        secrets.get("kite_api_secret"),
+        secrets.get("kite_access_token"),
+    )
+    return LivePriceStreamer(
+        secrets.get("kite_api_key"),
+        secrets.get("kite_access_token"),
+        client.instrument_cache,
+    )
+
 def get_live_prices(symbols):
     """Return a mapping of symbol to the latest live price.
 
@@ -42,6 +58,15 @@ def get_live_prices(symbols):
     network issues) random values are returned as a fallback so the
     dashboard remains functional in offline environments.
     """
+    # First try fetching via websocket snapshot
+    streamer = get_price_streamer()
+    try:
+        prices = streamer.snapshot(list(symbols), timeout=1)
+        if prices:
+            return prices
+    except Exception as e:  # pragma: no cover - websocket/network issue
+        st.warning(f"Live stream failed: {e}")
+
     client = get_kite_client()
     try:
         prices = client.fetch_live_prices(list(symbols))
@@ -51,7 +76,7 @@ def get_live_prices(symbols):
         st.warning(f"Live price fetch failed: {e}")
     return {s: round(random.uniform(50, 150), 2) for s in symbols}
 
-def auto_manage_positions(broker, watchlist):
+def auto_manage_positions(broker, watchlist, live_prices):
     """Automatically manage paper positions based on the watchlist."""
     if 'positions' not in st.session_state:
         st.session_state['positions'] = {}
@@ -61,7 +86,7 @@ def auto_manage_positions(broker, watchlist):
     # Enter new symbols
     for symbol in watchlist:
         if symbol not in positions:
-            entry_price = round(random.uniform(50, 150), 2)
+            entry_price = live_prices.get(symbol, round(random.uniform(50, 150), 2))
             target_price = round(entry_price * 1.1, 2)
             try:
                 broker.place_order(symbol, 1, entry_price, 'buy')
@@ -75,7 +100,7 @@ def auto_manage_positions(broker, watchlist):
     # Exit positions no longer in watchlist or that hit target
     for symbol in list(positions.keys()):
         info = positions[symbol]
-        current_price = round(random.uniform(50, 150), 2)
+        current_price = live_prices.get(symbol, round(random.uniform(50, 150), 2))
         if symbol not in watchlist or current_price >= info['target']:
             try:
                 broker.place_order(symbol, 1, current_price, 'sell')
@@ -86,13 +111,14 @@ def auto_manage_positions(broker, watchlist):
 def main():
     broker = get_broker()
     watchlist = load_latest_watchlist()
-    auto_manage_positions(broker, watchlist)
-
+    # Fetch live prices for watchlist and current positions
     portfolio = broker.get_portfolio()
     positions = st.session_state.get("positions", {})
-
     symbols_for_prices = set(watchlist).union(positions.keys(), portfolio["holdings"].keys())
     live_prices = get_live_prices(symbols_for_prices)
+    auto_manage_positions(broker, watchlist, live_prices)
+    portfolio = broker.get_portfolio()
+    positions = st.session_state.get("positions", {})
 
     st.title("📊 Paper Trading Dashboard")
 

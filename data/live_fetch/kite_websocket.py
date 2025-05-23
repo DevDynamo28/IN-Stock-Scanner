@@ -1,5 +1,10 @@
-from kiteconnect import KiteTicker
+try:
+    from kiteconnect import KiteTicker
+except Exception:  # pragma: no cover - optional dependency may be missing
+    KiteTicker = None
 from broker.zerodha import DummyWebSocket
+import time
+import threading
 
 
 class LivePriceStreamer:
@@ -25,6 +30,11 @@ class LivePriceStreamer:
     def start(self, symbols, callback):
         tokens = [self.token_map.get(s) for s in symbols if s in self.token_map]
         tokens = [t for t in tokens if t]
+        if KiteTicker is None:
+            print("[WARN] KiteTicker unavailable. Using DummyWebSocket.")
+            self.dummy = DummyWebSocket(symbols)
+            self.dummy.start(callback)
+            return
         try:
             self.ticker = KiteTicker(self.api_key, self.access_token)
 
@@ -53,3 +63,18 @@ class LivePriceStreamer:
                 pass
         if self.dummy:
             self.dummy.stop()
+
+    def snapshot(self, symbols, timeout=2):
+        """Return a snapshot of prices for ``symbols`` collected over ``timeout`` seconds."""
+        prices = {}
+
+        def _collect(data):
+            prices.update(data)
+
+        thread = threading.Thread(target=self.start, args=(symbols, _collect))
+        thread.daemon = True
+        thread.start()
+        time.sleep(timeout)
+        self.stop()
+        thread.join(timeout=0.1)
+        return prices
