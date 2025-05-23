@@ -11,4 +11,3 @@ def test_avg_price_and_qty_updates():
     acc.place_order("A", 1, 180, "sell")
     assert acc.holdings["A"]["qty"] == 3
     assert acc.balance == 580
-
