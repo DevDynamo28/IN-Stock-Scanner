@@ -1,6 +1,5 @@
 # rs_outperformance_kite_system/backtest_runner.py
 
-import os
 import pandas as pd
 from datetime import datetime, timedelta
 from strategy.rs_entry_engine import run_daily_entry_engine

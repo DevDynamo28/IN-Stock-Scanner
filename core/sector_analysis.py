@@ -2,14 +2,13 @@ import pandas as pd
 import yaml
 from core.rs_calculator import compute_rs_alpha
 
-# Load sector mapping from YAML file
-with open("config/sector_map.yaml", "r") as f:
-    sector_map = yaml.safe_load(f)
-
 def filter_by_sector_strength(stock_data_dict, index_data_dict, top_n_sectors=3):
     """
     Ranks sectors by RS Alpha (via ETF proxies) and returns stock symbols from top N sectors.
     """
+    with open("config/sector_map.yaml", "r") as f:
+        sector_map = yaml.safe_load(f) or {}
+
     sector_rs = {}
 
     # Step 1: Calculate RS Alpha for each sector ETF proxy
