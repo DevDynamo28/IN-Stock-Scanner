@@ -42,6 +42,20 @@ def evaluate_exit(stock_df, index_df, symbol, rs_threshold=0.01):
         "Exit Reason": reason
     }
 
+
+def evaluate_exit_live(stock_df, index_df, symbol, live_price, index_live_price=None, rs_threshold=0.01):
+    """Evaluate exit signals using a live price snapshot."""
+    df_live = stock_df.copy()
+    ts = pd.Timestamp.now()
+    df_live.loc[ts] = {'close': live_price}
+
+    index_df_live = index_df
+    if index_live_price is not None:
+        index_df_live = index_df.copy()
+        index_df_live.loc[ts] = {'close': index_live_price}
+
+    return evaluate_exit(df_live, index_df_live, symbol, rs_threshold)
+
 def check_exit_signals(portfolio, stock_data_dict, index_df):
     """Evaluate exit signals for a given portfolio"""
     exit_list = []
