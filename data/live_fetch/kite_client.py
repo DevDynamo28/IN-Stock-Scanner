@@ -4,10 +4,12 @@ try:
     from kiteconnect import KiteConnect
 except Exception:  # pragma: no cover - optional dependency may be missing
     KiteConnect = None
-try:  # pandas may not be installed in minimal environments
+
+try:
     import pandas as pd
 except Exception:  # pragma: no cover - optional dependency may be missing
     pd = None
+
 from datetime import datetime, timedelta, date
 import time
 
@@ -19,7 +21,6 @@ class ZerodhaKiteClient:
         self.kite = KiteConnect(api_key=self.api_key)
         self.kite.set_access_token(self.access_token)
         self.instrument_cache = self.build_token_cache()
-        
 
     def build_token_cache(self):
         print("[INFO] Building instrument token cache...")
@@ -29,7 +30,6 @@ class ZerodhaKiteClient:
             print(f"[WARN] Failed to fetch instruments: {e}")
             return {}
 
-        # 👉 Add this to see what index names are available
         print("[DEBUG] Sampling index instruments:")
         for item in instruments:
             if item['instrument_type'] == 'Index':
@@ -41,17 +41,14 @@ class ZerodhaKiteClient:
                 token_map[item['tradingsymbol']] = item['instrument_token']
         print(f"[✅] Cached {len(token_map)} tradable tokens.")
         return token_map
-        
-                
+
     def fetch_instrument_token(self, symbol):
         symbol = symbol.upper()
 
-        # Step 1: Try from cached map
         token = self.instrument_cache.get(symbol)
         if token:
             return token
 
-        # Step 2: Known index aliases → proper names (used by Kite)
         index_aliases = {
             "NIFTY": "NIFTY 50",
             "BANKNIFTY": "NIFTY BANK",
@@ -68,7 +65,6 @@ class ZerodhaKiteClient:
 
         mapped_name = index_aliases.get(symbol, symbol)
 
-        # Step 3: Try to resolve from full instrument list
         try:
             for item in self.kite.instruments():
                 if item.get('name', '').upper() == mapped_name.upper() and item.get('instrument_type', '').upper() == 'INDEX':
@@ -79,7 +75,6 @@ class ZerodhaKiteClient:
         except Exception as e:
             print(f"[ERROR] Failed to resolve token from instruments for {symbol}: {e}")
 
-        # Step 4: Final manual fallback (Kite may not expose some indices)
         manual_index_tokens = {
             "NIFTY": 256265,
             "BANKNIFTY": 260105,
@@ -93,15 +88,15 @@ class ZerodhaKiteClient:
             "NIFTYMIDCAP100": 1287746,
             "NIFTYSMALLCAP100": 1292545
         }
+
         if symbol in manual_index_tokens:
             token = manual_index_tokens[symbol]
             print(f"[HARDCODE ✅] Used static token for {symbol} → {token}")
             return token
 
-        # Step 5: Not found
         print(f"[❌] No token found for {symbol}")
         return None
-        
+
     def fetch_historical_ohlc(self, symbol, from_date, to_date, interval="day"):
         token = self.fetch_instrument_token(symbol)
         print(f"[FETCH] {symbol} OHLC from {from_date} to {to_date} → Token: {token}")
@@ -109,7 +104,6 @@ class ZerodhaKiteClient:
         if not token:
             return pd.DataFrame()
 
-        # Fresh KiteConnect session for reliable fetch
         kite = KiteConnect(api_key=self.api_key)
         kite.set_access_token(self.access_token)
 

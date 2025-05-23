@@ -4,8 +4,7 @@ import sys
 import random
 import pandas as pd
 
-# Ensure the repository root is on the Python path so that the local
-# `broker` package can be imported when this script is executed directly
+# Ensure the repository root is on the Python path
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
@@ -25,7 +24,7 @@ def get_broker():
     return ZerodhaBroker(mode="paper")
 
 def get_live_prices(symbols):
-    """Return a dict of simulated live prices for the given symbols."""
+    """Return a mapping of symbol to simulated live price."""
     return {s: round(random.uniform(50, 150), 2) for s in symbols}
 
 def auto_manage_positions(broker, watchlist):
@@ -71,43 +70,46 @@ def main():
     symbols_for_prices = set(watchlist).union(positions.keys(), portfolio["holdings"].keys())
     live_prices = get_live_prices(symbols_for_prices)
 
-    st.title("Paper Trading Dashboard")
+    st.title("📊 Paper Trading Dashboard")
 
-    # Deposit/Withdraw buttons
+    # Deposit/Withdraw controls
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Deposit 10000"):
+        if st.button("Deposit ₹10,000"):
             broker.deposit(10000)
             st.success("Deposited ₹10,000")
     with col2:
-        if st.button("Withdraw 1000"):
+        if st.button("Withdraw ₹1,000"):
             try:
                 broker.withdraw(1000)
                 st.success("Withdrew ₹1,000")
             except ValueError as e:
                 st.error(str(e))
 
+    # Account Metrics
     st.subheader("Account Overview")
     mcol1, mcol2, mcol3 = st.columns(3)
     mcol1.metric("Balance", f"{portfolio['balance']:.2f}")
     mcol2.metric("Holdings", len(portfolio["holdings"]))
     mcol3.metric("Open Positions", len(positions))
 
+    # Watchlist
     st.subheader("Current Watchlist")
     if watchlist:
         wl_df = pd.DataFrame({
             "Symbol": watchlist,
-            "Live Price": [live_prices.get(s, 0) for s in watchlist],
+            "Live Price": [live_prices.get(s, 0.0) for s in watchlist],
         })
         st.table(wl_df)
     else:
-        st.write("No symbols in watchlist")
+        st.write("No symbols in watchlist.")
 
+    # Open Positions
     st.subheader("Open Positions")
     if positions:
         pos_data = []
         for sym, info in positions.items():
-            current = live_prices.get(sym, 0)
+            current = live_prices.get(sym, 0.0)
             pnl = round(current - info["entry"], 2)
             pos_data.append({
                 "Symbol": sym,
@@ -118,8 +120,9 @@ def main():
             })
         st.table(pd.DataFrame(pos_data))
     else:
-        st.write("No open positions")
+        st.write("No open positions.")
 
+    # Holdings
     st.subheader("Holdings")
     holdings = portfolio["holdings"]
     if holdings:
@@ -127,7 +130,7 @@ def main():
         for sym, info in holdings.items():
             qty = info["qty"]
             avg_price = info["avg_price"]
-            current = live_prices.get(sym, 0)
+            current = live_prices.get(sym, 0.0)
             pnl = round((current - avg_price) * qty, 2)
             hold_data.append({
                 "Symbol": sym,
@@ -138,14 +141,15 @@ def main():
             })
         st.table(pd.DataFrame(hold_data))
     else:
-        st.write("No holdings")
+        st.write("No holdings.")
 
+    # Orders
     st.subheader("Order History")
     orders = portfolio["orders"]
     if orders:
         st.table(pd.DataFrame(orders))
     else:
-        st.write("No orders yet")
+        st.write("No orders yet.")
 
 if __name__ == "__main__":
     main()

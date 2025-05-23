@@ -3,7 +3,8 @@ class PaperAccount:
 
     def __init__(self, starting_balance=0.0):
         self.balance = float(starting_balance)
-        self.holdings = {}  # symbol -> {"qty": int, "avg_price": float}
+        # holdings are stored as {symbol: {"qty": int, "avg_price": float}}
+        self.holdings = {}
         self.order_history = []
 
     def deposit(self, amount):
@@ -25,27 +26,29 @@ class PaperAccount:
                 raise ValueError("Insufficient funds")
 
             self.balance -= cost
-            pos = self.holdings.get(symbol)
-
-            if pos:
-                total_qty = pos["qty"] + qty
-                avg_price = (pos["avg_price"] * pos["qty"] + price * qty) / total_qty
-                pos["qty"] = total_qty
-                pos["avg_price"] = avg_price
-            else:
-                self.holdings[symbol] = {"qty": qty, "avg_price": price}
+            current = self.holdings.get(symbol, {"qty": 0, "avg_price": 0.0})
+            new_qty = current["qty"] + qty
+            new_avg = (current["avg_price"] * current["qty"] + price * qty) / new_qty
+            self.holdings[symbol] = {"qty": new_qty, "avg_price": new_avg}
 
         elif side == "sell":
-            pos = self.holdings.get(symbol)
-            held_qty = pos["qty"] if pos else 0
+            current = self.holdings.get(symbol, {"qty": 0, "avg_price": 0.0})
+            held_qty = current["qty"]
 
             if qty > held_qty:
                 raise ValueError("Not enough holdings to sell")
 
-            pos["qty"] -= qty
-            if pos["qty"] == 0:
-                del self.holdings[symbol]
+            new_qty = held_qty - qty
             self.balance += cost
+
+            if new_qty == 0:
+                self.holdings.pop(symbol, None)
+            else:
+                self.holdings[symbol] = {
+                    "qty": new_qty,
+                    "avg_price": current["avg_price"],
+                }
+
         else:
             raise ValueError("Order side must be 'buy' or 'sell'")
 
