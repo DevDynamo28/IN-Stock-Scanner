@@ -3,7 +3,6 @@
 import pandas as pd
 import os
 from datetime import datetime
-from output.telegram_bot import send_telegram_message
 import requests
 
 from tools.secrets import load_secrets
