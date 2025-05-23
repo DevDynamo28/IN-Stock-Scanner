@@ -1,8 +1,8 @@
 import streamlit as st
 import os
 import sys
-import glob
 import random
+import pandas as pd
 
 # Ensure the repository root is on the Python path so that the local
 # `broker` package can be imported when this script is executed
@@ -79,31 +79,59 @@ def main():
 
     st.title("Paper Trading Dashboard")
 
-    col1, col2 = st.columns(2)
-    with col1:
+    # Deposit/withdraw actions
+    action_col1, action_col2 = st.columns(2)
+    with action_col1:
         if st.button("Deposit 10000"):
             broker.deposit(10000)
-    with col2:
+            st.success("Deposited 10000")
+    with action_col2:
         if st.button("Withdraw 1000"):
             try:
                 broker.withdraw(1000)
+                st.success("Withdrew 1000")
             except ValueError as e:
                 st.error(str(e))
 
     portfolio = broker.get_portfolio()
+    positions = st.session_state.get("positions", {})
+
+    st.subheader("Account Overview")
+    mcol1, mcol2, mcol3 = st.columns(3)
+    mcol1.metric("Balance", f"{portfolio['balance']:.2f}")
+    mcol2.metric("Holdings", len(portfolio["holdings"]))
+    mcol3.metric("Open Positions", len(positions))
+
     st.subheader("Current Watchlist")
-    st.write(watchlist)
-    st.subheader("Balance")
-    st.write(portfolio["balance"])
+    if watchlist:
+        st.table(pd.DataFrame(watchlist, columns=["Symbol"]))
+    else:
+        st.write("No symbols in watchlist")
 
     st.subheader("Open Positions")
-    st.write(st.session_state.get('positions', {}))
+    if positions:
+        pos_df = pd.DataFrame.from_dict(positions, orient="index")
+        pos_df.index.name = "Symbol"
+        st.table(pos_df)
+    else:
+        st.write("No open positions")
 
     st.subheader("Holdings")
-    st.write(portfolio["holdings"])
+    holdings = portfolio["holdings"]
+    if holdings:
+        holdings_df = pd.DataFrame(
+            list(holdings.items()), columns=["Symbol", "Quantity"]
+        )
+        st.table(holdings_df)
+    else:
+        st.write("No holdings")
 
     st.subheader("Order History")
-    st.write(portfolio["orders"])
+    orders = portfolio["orders"]
+    if orders:
+        st.table(pd.DataFrame(orders))
+    else:
+        st.write("No orders yet")
 
 
 if __name__ == "__main__":
