@@ -3,6 +3,7 @@ class PaperAccount:
 
     def __init__(self, starting_balance=0.0):
         self.balance = float(starting_balance)
+        # holdings are stored as {symbol: {"qty": int, "avg_price": float}}
         self.holdings = {}
         self.order_history = []
 
@@ -26,15 +27,28 @@ class PaperAccount:
             "price": price,
             "side": side,
         }
+
+        current = self.holdings.get(symbol, {"qty": 0, "avg_price": 0.0})
         if side.lower() == "buy":
             self.balance -= cost
-            self.holdings[symbol] = self.holdings.get(symbol, 0) + qty
+            new_qty = current["qty"] + qty
+            new_avg = (
+                current["avg_price"] * current["qty"] + price * qty
+            ) / new_qty
+            self.holdings[symbol] = {"qty": new_qty, "avg_price": new_avg}
         else:
-            held = self.holdings.get(symbol, 0)
-            if qty > held:
+            held_qty = current.get("qty", 0)
+            if qty > held_qty:
                 raise ValueError("Not enough holdings to sell")
-            self.holdings[symbol] = held - qty
+            new_qty = held_qty - qty
             self.balance += cost
+            if new_qty == 0:
+                self.holdings.pop(symbol, None)
+            else:
+                self.holdings[symbol] = {
+                    "qty": new_qty,
+                    "avg_price": current["avg_price"],
+                }
         self.order_history.append(order)
         return order
 

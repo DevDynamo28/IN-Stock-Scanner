@@ -1,7 +1,14 @@
 # rs_outperformance_kite_system/data/live_fetch/kite_client.py
 
-from kiteconnect import KiteConnect
-import pandas as pd
+try:
+    from kiteconnect import KiteConnect
+except Exception:  # pragma: no cover - optional dependency
+    KiteConnect = None
+
+try:
+    import pandas as pd
+except Exception:  # pragma: no cover - optional dependency
+    pd = None
 from datetime import datetime, timedelta, date
 import time
 

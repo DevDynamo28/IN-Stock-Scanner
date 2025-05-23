@@ -11,7 +11,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from broker.zerodha import ZerodhaBroker, DummyWebSocket
+from broker.zerodha import ZerodhaBroker
 from tools.watchlist import load_latest_watchlist
 
 
@@ -23,6 +23,11 @@ if hasattr(st, "cache_resource"):
     cache_decorator = st.cache_resource
 else:  # Fallback for older Streamlit versions
     cache_decorator = st.cache(allow_output_mutation=True)
+
+
+def fetch_live_prices(symbols):
+    """Return a mapping of symbol to simulated live price."""
+    return {sym: random.uniform(50, 150) for sym in symbols}
 
 
 @cache_decorator
@@ -110,8 +115,18 @@ def main():
 
     st.subheader("Open Positions")
     if positions:
-        pos_df = pd.DataFrame.from_dict(positions, orient="index")
-        pos_df.index.name = "Symbol"
+        live = fetch_live_prices(list(positions.keys()))
+        rows = []
+        for sym, info in positions.items():
+            price = live.get(sym, 0.0)
+            pnl = price - info["entry"]
+            rows.append({
+                "Symbol": sym,
+                "Entry": info["entry"],
+                "Live": price,
+                "PnL": pnl,
+            })
+        pos_df = pd.DataFrame(rows)
         st.table(pos_df)
     else:
         st.write("No open positions")
@@ -119,9 +134,21 @@ def main():
     st.subheader("Holdings")
     holdings = portfolio["holdings"]
     if holdings:
-        holdings_df = pd.DataFrame(
-            list(holdings.items()), columns=["Symbol", "Quantity"]
-        )
+        live = fetch_live_prices(list(holdings.keys()))
+        rows = []
+        for sym, info in holdings.items():
+            price = live.get(sym, 0.0)
+            qty = info.get("qty", 0)
+            avg_price = info.get("avg_price", 0.0)
+            pnl = (price - avg_price) * qty
+            rows.append({
+                "Symbol": sym,
+                "Qty": qty,
+                "Avg Price": avg_price,
+                "Live": price,
+                "PnL": pnl,
+            })
+        holdings_df = pd.DataFrame(rows)
         st.table(holdings_df)
     else:
         st.write("No holdings")
