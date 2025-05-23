@@ -122,19 +122,17 @@ def main():
 
     st.title("📊 Paper Trading Dashboard")
 
-    # Deposit/Withdraw controls
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Deposit ₹10,000"):
-            broker.deposit(10000)
-            st.success("Deposited ₹10,000")
-    with col2:
-        if st.button("Withdraw ₹1,000"):
-            try:
-                broker.withdraw(1000)
-                st.success("Withdrew ₹1,000")
-            except ValueError as e:
-                st.error(str(e))
+    # Sidebar controls for account actions
+    st.sidebar.header("Account Actions")
+    if st.sidebar.button("Deposit ₹10,000"):
+        broker.deposit(10000)
+        st.sidebar.success("Deposited ₹10,000")
+    if st.sidebar.button("Withdraw ₹1,000"):
+        try:
+            broker.withdraw(1000)
+            st.sidebar.success("Withdrew ₹1,000")
+        except ValueError as e:
+            st.sidebar.error(str(e))
 
     # Account Metrics
     st.subheader("Account Overview")
@@ -143,63 +141,66 @@ def main():
     mcol2.metric("Holdings", len(portfolio["holdings"]))
     mcol3.metric("Open Positions", len(positions))
 
-    # Watchlist
-    st.subheader("Current Watchlist")
-    if watchlist:
-        wl_df = pd.DataFrame({
-            "Symbol": watchlist,
-            "Live Price": [live_prices.get(s, 0.0) for s in watchlist],
-        })
-        st.table(wl_df)
-    else:
-        st.write("No symbols in watchlist.")
+    watch_tab, pos_tab, hold_tab, order_tab = st.tabs([
+        "Watchlist",
+        "Positions",
+        "Holdings",
+        "Order History",
+    ])
 
-    # Open Positions
-    st.subheader("Open Positions")
-    if positions:
-        pos_data = []
-        for sym, info in positions.items():
-            current = live_prices.get(sym, 0.0)
-            pnl = round(current - info["entry"], 2)
-            pos_data.append({
-                "Symbol": sym,
-                "Entry": info["entry"],
-                "Target": info["target"],
-                "Live Price": current,
-                "PnL": pnl,
+    with watch_tab:
+        if watchlist:
+            wl_df = pd.DataFrame({
+                "Symbol": watchlist,
+                "Live Price": [live_prices.get(s, 0.0) for s in watchlist],
             })
-        st.table(pd.DataFrame(pos_data))
-    else:
-        st.write("No open positions.")
+            st.table(wl_df)
+        else:
+            st.write("No symbols in watchlist.")
 
-    # Holdings
-    st.subheader("Holdings")
-    holdings = portfolio["holdings"]
-    if holdings:
-        hold_data = []
-        for sym, info in holdings.items():
-            qty = info["qty"]
-            avg_price = info["avg_price"]
-            current = live_prices.get(sym, 0.0)
-            pnl = round((current - avg_price) * qty, 2)
-            hold_data.append({
-                "Symbol": sym,
-                "Qty": qty,
-                "Avg Price": avg_price,
-                "Live Price": current,
-                "PnL": pnl,
-            })
-        st.table(pd.DataFrame(hold_data))
-    else:
-        st.write("No holdings.")
+    with pos_tab:
+        if positions:
+            pos_data = []
+            for sym, info in positions.items():
+                current = live_prices.get(sym, 0.0)
+                pnl = round(current - info["entry"], 2)
+                pos_data.append({
+                    "Symbol": sym,
+                    "Entry": info["entry"],
+                    "Target": info["target"],
+                    "Live Price": current,
+                    "PnL": pnl,
+                })
+            st.table(pd.DataFrame(pos_data))
+        else:
+            st.write("No open positions.")
 
-    # Orders
-    st.subheader("Order History")
-    orders = portfolio["orders"]
-    if orders:
-        st.table(pd.DataFrame(orders))
-    else:
-        st.write("No orders yet.")
+    with hold_tab:
+        holdings = portfolio["holdings"]
+        if holdings:
+            hold_data = []
+            for sym, info in holdings.items():
+                qty = info["qty"]
+                avg_price = info["avg_price"]
+                current = live_prices.get(sym, 0.0)
+                pnl = round((current - avg_price) * qty, 2)
+                hold_data.append({
+                    "Symbol": sym,
+                    "Qty": qty,
+                    "Avg Price": avg_price,
+                    "Live Price": current,
+                    "PnL": pnl,
+                })
+            st.table(pd.DataFrame(hold_data))
+        else:
+            st.write("No holdings.")
+
+    with order_tab:
+        orders = portfolio["orders"]
+        if orders:
+            st.table(pd.DataFrame(orders))
+        else:
+            st.write("No orders yet.")
 
 if __name__ == "__main__":
     main()
