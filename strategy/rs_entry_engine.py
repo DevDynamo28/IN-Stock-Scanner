@@ -11,7 +11,25 @@ from data.live_fetch.kite_client import ZerodhaKiteClient
 from output.telegram_bot import send_telegram_message
 
 
-def run_daily_entry_engine(api_key, api_secret, access_token, stock_data_dict=None, index_df=None, top_n=50, use_sector_filter=True):
+def run_daily_entry_engine(
+    api_key,
+    api_secret,
+    access_token,
+    stock_data_dict=None,
+    index_df=None,
+    top_n=50,
+    use_sector_filter=True,
+    live_prices=None,
+):
+    """Run the daily RS entry scan.
+
+    Parameters
+    ----------
+    live_prices : dict[str, float], optional
+        Latest live prices from a websocket stream. If supplied these prices are
+        appended to the OHLC data before calculating indicators.
+    """
+
     kite = ZerodhaKiteClient(api_key, api_secret, access_token)
 
     # Load symbols from config
@@ -25,6 +43,19 @@ def run_daily_entry_engine(api_key, api_secret, access_token, stock_data_dict=No
     # Fetch stock data if not supplied
     if stock_data_dict is None:
         stock_data_dict = kite.fetch_multiple_ohlc(all_symbols)
+
+    # Apply live prices if provided
+    if live_prices:
+        ts = pd.Timestamp.now()
+        for sym, price in live_prices.items():
+            if sym == index_symbol:
+                # update index live price
+                if index_df is not None:
+                    index_df.loc[ts] = {'close': price}
+                continue
+            df = stock_data_dict.get(sym)
+            if df is not None:
+                df.loc[ts] = {'close': price}
 
     # ✅ Step 1: Breadth Filter
     if not evaluate_breadth(stock_data_dict):
