@@ -11,7 +11,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from broker.zerodha import ZerodhaBroker, DummyWebSocket
+from broker.zerodha import ZerodhaBroker
 from tools.watchlist import load_latest_watchlist
 
 
@@ -29,6 +29,11 @@ else:  # Fallback for older Streamlit versions
 def get_broker():
     """Return a cached ZerodhaBroker instance."""
     return ZerodhaBroker(mode="paper")
+
+
+def get_live_prices(symbols):
+    """Return a dict of simulated live prices for the given symbols."""
+    return {s: round(random.uniform(50, 150), 2) for s in symbols}
 
 
 def auto_manage_positions(broker, watchlist):
@@ -77,6 +82,14 @@ def main():
     watchlist = load_latest_watchlist()
     auto_manage_positions(broker, watchlist)
 
+    portfolio = broker.get_portfolio()
+    positions = st.session_state.get("positions", {})
+
+    symbols_for_prices = set(watchlist)
+    symbols_for_prices.update(positions.keys())
+    symbols_for_prices.update(portfolio["holdings"].keys())
+    live_prices = get_live_prices(symbols_for_prices)
+
     st.title("Paper Trading Dashboard")
 
     # Deposit/withdraw actions
@@ -93,9 +106,6 @@ def main():
             except ValueError as e:
                 st.error(str(e))
 
-    portfolio = broker.get_portfolio()
-    positions = st.session_state.get("positions", {})
-
     st.subheader("Account Overview")
     mcol1, mcol2, mcol3 = st.columns(3)
     mcol1.metric("Balance", f"{portfolio['balance']:.2f}")
@@ -104,14 +114,28 @@ def main():
 
     st.subheader("Current Watchlist")
     if watchlist:
-        st.table(pd.DataFrame(watchlist, columns=["Symbol"]))
+        wl_df = pd.DataFrame({
+            "Symbol": watchlist,
+            "Live Price": [live_prices.get(s, 0) for s in watchlist],
+        })
+        st.table(wl_df)
     else:
         st.write("No symbols in watchlist")
 
     st.subheader("Open Positions")
     if positions:
-        pos_df = pd.DataFrame.from_dict(positions, orient="index")
-        pos_df.index.name = "Symbol"
+        rows = []
+        for sym, info in positions.items():
+            current = live_prices.get(sym, 0)
+            pnl = round(current - info["entry"], 2)
+            rows.append({
+                "Symbol": sym,
+                "Entry": info["entry"],
+                "Target": info["target"],
+                "Live Price": current,
+                "PnL": pnl,
+            })
+        pos_df = pd.DataFrame(rows)
         st.table(pos_df)
     else:
         st.write("No open positions")
@@ -119,9 +143,20 @@ def main():
     st.subheader("Holdings")
     holdings = portfolio["holdings"]
     if holdings:
-        holdings_df = pd.DataFrame(
-            list(holdings.items()), columns=["Symbol", "Quantity"]
-        )
+        rows = []
+        for sym, info in holdings.items():
+            qty = info["qty"]
+            avg_price = info["avg_price"]
+            current = live_prices.get(sym, 0)
+            pnl = round((current - avg_price) * qty, 2)
+            rows.append({
+                "Symbol": sym,
+                "Qty": qty,
+                "Avg Price": avg_price,
+                "Live Price": current,
+                "PnL": pnl,
+            })
+        holdings_df = pd.DataFrame(rows)
         st.table(holdings_df)
     else:
         st.write("No holdings")
