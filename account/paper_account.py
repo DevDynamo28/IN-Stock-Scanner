@@ -19,29 +19,28 @@ class PaperAccount:
 
     def place_order(self, symbol, qty, price, side):
         cost = qty * price
-        if side.lower() == "buy" and cost > self.balance:
-            raise ValueError("Insufficient funds")
-        order = {
-            "symbol": symbol,
-            "qty": qty,
-            "price": price,
-            "side": side,
-        }
+        side = side.lower()
 
-        current = self.holdings.get(symbol, {"qty": 0, "avg_price": 0.0})
-        if side.lower() == "buy":
+        if side == "buy":
+            if cost > self.balance:
+                raise ValueError("Insufficient funds")
+
             self.balance -= cost
+            current = self.holdings.get(symbol, {"qty": 0, "avg_price": 0.0})
             new_qty = current["qty"] + qty
-            new_avg = (
-                current["avg_price"] * current["qty"] + price * qty
-            ) / new_qty
+            new_avg = (current["avg_price"] * current["qty"] + price * qty) / new_qty
             self.holdings[symbol] = {"qty": new_qty, "avg_price": new_avg}
-        else:
-            held_qty = current.get("qty", 0)
+
+        elif side == "sell":
+            current = self.holdings.get(symbol, {"qty": 0, "avg_price": 0.0})
+            held_qty = current["qty"]
+
             if qty > held_qty:
                 raise ValueError("Not enough holdings to sell")
+
             new_qty = held_qty - qty
             self.balance += cost
+
             if new_qty == 0:
                 self.holdings.pop(symbol, None)
             else:
@@ -49,6 +48,16 @@ class PaperAccount:
                     "qty": new_qty,
                     "avg_price": current["avg_price"],
                 }
+
+        else:
+            raise ValueError("Order side must be 'buy' or 'sell'")
+
+        order = {
+            "symbol": symbol,
+            "qty": qty,
+            "price": price,
+            "side": side,
+        }
         self.order_history.append(order)
         return order
 
